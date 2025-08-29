@@ -1,0 +1,409 @@
+You: Ideia de projeto - MVC com PHP, bootstrap e icons, vanilla js e MySQL. Composer, namespaces, .env, sistema de template estilo plates mas sem framework ou biblioteca php alguma. Versionamento com git, main, develop, feat/x feat/y, etc e merge --no-ff e pull --no-ff Questões resolvidas de concurso Empresa / ano concurso Cargo da prova questão alternativas com opção de marcar a correta usar fetch js para não dar reload desnecessário á página ou deixar escondido os itens e abrir ao ser clicado Botão ver resposta - Armazenar a resposta especifica para essa prova Botão resolução Na resolução mostrar links para estudo complementar Botão seguinte. Ao final da prova, por exemplo 100 questões, mostrar quantas acertou por exemplo 1 - A em vermelho 2 - C em azul etc e ao final - Acertou 50/100 - 40% de acerto. Criar o banco de dados para armazenar as questões Criar a pagina de registro e login. Registro deve criar um codigo temporário e enviar via e-mail. Aí com a inserção do código, registrar no banco de dados e por data de registro e um tipo de timer que desative o cadastro em 10 dias. Depois será criado uma função ou algo assim para aumentar os dias no banco. Crie o boilerplate por favor.
+DeepSeek: Sistema de Questões de Concurso - Documentação📋 Visão GeralEste é um sistema completo para estudo de questões de concursos públicos, desenvolvido em PHP seguindo o padrão MVC, com MySQL, Bootstrap e JavaScript Vanilla.🗂️ Estrutura do ProjetotextCopyDownloadprojeto-concursos/
+├── app/
+│   ├── controllers/          # Controladores da aplicação
+│   ├── models/              # Modelos de dados
+│   ├── views/               # Templates e views
+│   ├── core/                # Classes centrais do framework
+│   └── routes/              # Definição de rotas
+├── config/                  # Arquivos de configuração
+├── public/                  # Ponto de entrada e arquivos públicos
+├── vendor/                  # Dependências do Composer
+└── README.md               # Este arquivo🚀 Instalação e Configuração1. Requisitos do SistemaPHP &gt;= 7.4MySQL &gt;= 5.7ComposerGit2. InstalaçãobashCopyDownload# Clone o repositório
+git clone &lt;url-do-repositorio&gt;
+cd projeto-concursos
+
+# Instale as dependências
+composer install
+
+# Configure o ambiente
+cp config/.env.example config/.env3. Configuração do Banco de DadosEdite o arquivo config/.env com suas credenciais do MySQLExecute o script SQL para criar as tabelas (encontrado em docs/database.sql)4. Executando a AplicaçãobashCopyDownload# Desenvolvimento
+php -S localhost:8000 -t public/
+
+# Produção (configure seu servidor web para apontar para a pasta public/)🎨 Sistema de TemplatesTemplateEngine - Classe estilo PlatesNosso sistema inclui uma classe TemplateEngine inspirada no Plates PHP:Recursos Principais:Layouts/Master Pages: Templates com estrutura comumPartials: Inclusão de componentes reutilizáveisEscapamento automático: Proteção contra XSSHerança de templates: Sistema de blocos e seçõesExemplo de Uso:Controller:phpCopyDownloadpublic function showUserProfile($userId) {
+    $userModel = new User($this-&gt;db);
+    $user = $userModel-&gt;readById($userId);
+    
+    return $this-&gt;template-&gt;render('profile/view', [
+        'user' =&gt; $user,
+        'pageTitle' =&gt; 'Perfil do Usuário'
+    ]);
+}View (profile/view.php):phpCopyDownload&lt;?php $this-&gt;extend('layouts/main'); ?&gt;
+
+&lt;?php $this-&gt;section('content'); ?&gt;
+&lt;div class="container"&gt;
+    &lt;h1&gt;Perfil de &lt;?= $this-&gt;e($user['name']) ?&gt;&lt;/h1&gt;
+    
+    &lt;div class="row"&gt;
+        &lt;div class="col-md-4"&gt;
+            &lt;?php $this-&gt;insert('profile/sidebar', ['user' =&gt; $user]); ?&gt;
+        &lt;/div&gt;
+        &lt;div class="col-md-8"&gt;
+            &lt;?php $this-&gt;insert('profile/content', ['user' =&gt; $user]); ?&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
+&lt;?php $this-&gt;endSection(); ?&gt;Métodos Disponíveis:MétodoDescriçãoExemplorender($template, $data)Renderiza um template$this-&gt;template-&gt;render('home')e($value)Escapa output HTML&lt;?= $this-&gt;e($userInput) ?&gt;extend($template)Estende um layout&lt;?php $this-&gt;extend('layouts/main') ?&gt;section($name)Inicia uma seção&lt;?php $this-&gt;section('content') ?&gt;endSection()Finaliza uma seção&lt;?php $this-&gt;endSection() ?&gt;insert($template, $data)Insere um partial&lt;?php $this-&gt;insert('partials/header') ?&gt;🆕 Criando Novos ControllersEstrutura Básica de um ControllerphpCopyDownload&lt;?php
+namespace App\Controllers;
+
+use App\Core\TemplateEngine;
+
+class MeuNovoController extends BaseController {
+    public function __construct($db) {
+        parent::__construct($db);
+        // Inicializações específicas do controller
+    }
+    
+    // Método para ação index
+    public function index() {
+        $model = new MeuModel($this-&gt;db);
+        $dados = $model-&gt;getAll();
+        
+        return $this-&gt;template-&gt;render('meu-template/index', [
+            'dados' =&gt; $dados,
+            'titulo' =&gt; 'Meu Título'
+        ]);
+    }
+    
+    // Método para ação com parâmetros
+    public function ver($id) {
+        $model = new MeuModel($this-&gt;db);
+        $item = $model-&gt;getById($id);
+        
+        if (!$item) {
+            // Redirecionar para página de erro
+            header('Location: /erro');
+            exit;
+        }
+        
+        return $this-&gt;template-&gt;render('meu-template/ver', [
+            'item' =&gt; $item
+        ]);
+    }
+    
+    // Método para processar formulários
+    public function salvar() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: /');
+            exit;
+        }
+        
+        // Processar dados do formulário
+        $dados = [
+            'nome' =&gt; $_POST['nome'],
+            'email' =&gt; $_POST['email']
+        ];
+        
+        $model = new MeuModel($this-&gt;db);
+        $resultado = $model-&gt;create($dados);
+        
+        if ($resultado) {
+            header('Location: /sucesso?mensagem=Item criado com sucesso');
+        } else {
+            header('Location: /erro?mensagem=Falha ao criar item');
+        }
+        exit;
+    }
+}Registrando Rotas para o Novo ControllerNo arquivo app/routes/web.php:phpCopyDownload// Rotas para o novo controller
+$router-&gt;get('/meu-recurso', [MeuNovoController::class, 'index']);
+$router-&gt;get('/meu-recurso/ver/{id}', [MeuNovoController::class, 'ver']);
+$router-&gt;get('/meu-recurso/novo', [MeuNovoController::class, 'novo']);
+$router-&gt;post('/meu-recurso/salvar', [MeuNovoController::class, 'salvar']);
+
+// Rota com middleware de autenticação
+$router-&gt;get('/meu-recurso/editar/{id}', [MeuNovoController::class, 'editar'], ['auth']);🆕 Criando Novas ViewsEstrutura de Diretórios para ViewstextCopyDownloadapp/views/
+├── layouts/                 # Layouts principais
+│   ├── main.php            # Layout principal
+│   └── admin.php           # Layout administrativo
+├── partials/               # Componentes reutilizáveis
+│   ├── header.php
+│   ├── footer.php
+│   ├── navigation.php
+│   └── form-components/
+│       ├── input.php
+│       └── select.php
+├── meu-template/           # Views do novo controller
+│   ├── index.php
+│   ├── ver.php
+│   ├── novo.php
+│   └── editar.php
+└── errors/                 # Páginas de erro
+    ├── 404.php
+    └── 500.phpExemplo de View (index.php)phpCopyDownload&lt;?php $this-&gt;extend('layouts/main'); ?&gt;
+
+&lt;?php $this-&gt;section('title'); ?&gt;
+&lt;?= $this-&gt;e($titulo) ?&gt; - Sistema de Questões
+&lt;?php $this-&gt;endSection(); ?&gt;
+
+&lt;?php $this-&gt;section('styles'); ?&gt;
+&lt;style&gt;
+    .custom-style {
+        color: #3b5998;
+    }
+&lt;/style&gt;
+&lt;?php $this-&gt;endSection(); ?&gt;
+
+&lt;?php $this-&gt;section('content'); ?&gt;
+&lt;div class="container"&gt;
+    &lt;h1 class="my-4"&gt;&lt;?= $this-&gt;e($titulo) ?&gt;&lt;/h1&gt;
+    
+    &lt;?php $this-&gt;insert('partials/alertas'); ?&gt;
+    
+    &lt;div class="row"&gt;
+        &lt;div class="col-md-12"&gt;
+            &lt;div class="card"&gt;
+                &lt;div class="card-header d-flex justify-content-between align-items-center"&gt;
+                    &lt;h5 class="card-title mb-0"&gt;Lista de Itens&lt;/h5&gt;
+                    &lt;a href="/meu-recurso/novo" class="btn btn-primary btn-sm"&gt;
+                        &lt;i class="bi bi-plus-circle"&gt;&lt;/i&gt; Novo Item
+                    &lt;/a&gt;
+                &lt;/div&gt;
+                &lt;div class="card-body"&gt;
+                    &lt;?php if (empty($dados)): ?&gt;
+                        &lt;div class="alert alert-info"&gt;
+                            Nenhum item encontrado.
+                        &lt;/div&gt;
+                    &lt;?php else: ?&gt;
+                        &lt;div class="table-responsive"&gt;
+                            &lt;table class="table table-striped"&gt;
+                                &lt;thead&gt;
+                                    &lt;tr&gt;
+                                        &lt;th&gt;ID&lt;/th&gt;
+                                        &lt;th&gt;Nome&lt;/th&gt;
+                                        &lt;th&gt;Email&lt;/th&gt;
+                                        &lt;th&gt;Ações&lt;/th&gt;
+                                    &lt;/tr&gt;
+                                &lt;/thead&gt;
+                                &lt;tbody&gt;
+                                    &lt;?php foreach ($dados as $item): ?&gt;
+                                    &lt;tr&gt;
+                                        &lt;td&gt;&lt;?= $this-&gt;e($item['id']) ?&gt;&lt;/td&gt;
+                                        &lt;td&gt;&lt;?= $this-&gt;e($item['nome']) ?&gt;&lt;/td&gt;
+                                        &lt;td&gt;&lt;?= $this-&gt;e($item['email']) ?&gt;&lt;/td&gt;
+                                        &lt;td&gt;
+                                            &lt;a href="/meu-recurso/ver/&lt;?= $item['id'] ?&gt;" class="btn btn-info btn-sm"&gt;
+                                                &lt;i class="bi bi-eye"&gt;&lt;/i&gt;
+                                            &lt;/a&gt;
+                                            &lt;a href="/meu-recurso/editar/&lt;?= $item['id'] ?&gt;" class="btn btn-warning btn-sm"&gt;
+                                                &lt;i class="bi bi-pencil"&gt;&lt;/i&gt;
+                                            &lt;/a&gt;
+                                        &lt;/td&gt;
+                                    &lt;/tr&gt;
+                                    &lt;?php endforeach; ?&gt;
+                                &lt;/tbody&gt;
+                            &lt;/table&gt;
+                        &lt;/div&gt;
+                    &lt;?php endif; ?&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
+&lt;?php $this-&gt;endSection(); ?&gt;
+
+&lt;?php $this-&gt;section('scripts'); ?&gt;
+&lt;script&gt;
+    document.addEventListener('DOMContentLoaded', function() {
+        // Scripts específicos para esta página
+        console.log('Página carregada');
+    });
+&lt;/script&gt;
+&lt;?php $this-&gt;endSection(); ?&gt;🔄 Trabalhando com JOINS no ModelExemplo de Model com JOINsphpCopyDownload&lt;?php
+namespace App\Models;
+
+class MeuModel extends Model {
+    protected $table = "minha_tabela";
+    protected $primaryKey = "id";
+
+    public function getWithRelations($id) {
+        $query = "SELECT mt.*, 
+                         u.nome as usuario_nome, 
+                         u.email as usuario_email,
+                         c.nome as categoria_nome
+                  FROM {$this-&gt;table} mt
+                  LEFT JOIN usuarios u ON mt.usuario_id = u.id
+                  INNER JOIN categorias c ON mt.categoria_id = c.id
+                  WHERE mt.id = :id";
+        
+        $stmt = $this-&gt;conn-&gt;prepare($query);
+        $stmt-&gt;bindValue(':id', $id, \PDO::PARAM_INT);
+        
+        try {
+            $stmt-&gt;execute();
+            return $stmt-&gt;fetch(\PDO::FETCH_ASSOC);
+        } catch (\PDOException $e) {
+            error_log("Error getting item with relations: " . $e-&gt;getMessage());
+            return false;
+        }
+    }
+
+    public function getAllWithRelations($filters = [], $limit = null, $offset = null) {
+        $query = "SELECT mt.*, 
+                         u.nome as usuario_nome, 
+                         c.nome as categoria_nome
+                  FROM {$this-&gt;table} mt
+                  LEFT JOIN usuarios u ON mt.usuario_id = u.id
+                  INNER JOIN categorias c ON mt.categoria_id = c.id
+                  WHERE 1=1";
+        
+        $params = [];
+        
+        // Filtros
+        if (!empty($filters['categoria_id'])) {
+            $query .= " AND mt.categoria_id = :categoria_id";
+            $params[':categoria_id'] = $filters['categoria_id'];
+        }
+        
+        if (!empty($filters['usuario_id'])) {
+            $query .= " AND mt.usuario_id = :usuario_id";
+            $params[':usuario_id'] = $filters['usuario_id'];
+        }
+        
+        if (!empty($filters['search'])) {
+            $query .= " AND (mt.titulo LIKE :search OR mt.descricao LIKE :search)";
+            $params[':search'] = '%' . $filters['search'] . '%';
+        }
+        
+        $query .= " ORDER BY mt.criado_em DESC";
+        
+        if ($limit) {
+            $query .= " LIMIT :limit";
+            $params[':limit'] = $limit;
+            
+            if ($offset) {
+                $query .= " OFFSET :offset";
+                $params[':offset'] = $offset;
+            }
+        }
+        
+        $stmt = $this-&gt;conn-&gt;prepare($query);
+        
+        foreach ($params as $key =&gt; $value) {
+            $stmt-&gt;bindValue($key, $value, is_int($value) ? \PDO::PARAM_INT : \PDO::PARAM_STR);
+        }
+        
+        try {
+            $stmt-&gt;execute();
+            return $stmt-&gt;fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\PDOException $e) {
+            error_log("Error getting items with relations: " . $e-&gt;getMessage());
+            return false;
+        }
+    }
+
+    public function getWithPagination($page = 1, $perPage = 10, $filters = []) {
+        $offset = ($page - 1) * $perPage;
+        $items = $this-&gt;getAllWithRelations($filters, $perPage, $offset);
+        
+        $total = $this-&gt;count($filters);
+        $totalPages = ceil($total / $perPage);
+        
+        return [
+            'items' =&gt; $items,
+            'pagination' =&gt; [
+                'current_page' =&gt; $page,
+                'per_page' =&gt; $perPage,
+                'total' =&gt; $total,
+                'total_pages' =&gt; $totalPages,
+                'has_prev' =&gt; $page &gt; 1,
+                'has_next' =&gt; $page &lt; $totalPages
+            ]
+        ];
+    }
+}Usando o Model no ControllerphpCopyDownloadpublic function listar() {
+    $page = $_GET['page'] ?? 1;
+    $perPage = 10;
+    
+    $filters = [];
+    if (!empty($_GET['categoria_id'])) {
+        $filters['categoria_id'] = $_GET['categoria_id'];
+    }
+    
+    if (!empty($_GET['search'])) {
+        $filters['search'] = $_GET['search'];
+    }
+    
+    $model = new MeuModel($this-&gt;db);
+    $resultado = $model-&gt;getWithPagination($page, $perPage, $filters);
+    
+    // Obter categorias para o filtro
+    $categoriaModel = new CategoriaModel($this-&gt;db);
+    $categorias = $categoriaModel-&gt;read();
+    
+    return $this-&gt;template-&gt;render('meu-template/index', [
+        'items' =&gt; $resultado['items'],
+        'pagination' =&gt; $resultado['pagination'],
+        'categorias' =&gt; $categorias,
+        'filters' =&gt; $filters
+    ]);
+}🎯 Views DisponíveisLayoutslayouts/main.php - Layout principal da aplicaçãolayouts/admin.php - Layout para área administrativaPartialspartials/header.php - Cabeçalho do sitepartials/footer.php - Rodapé do sitepartials/navigation.php - Navegação principalpartials/alertas.php - Sistema de alertas/mensagenspartials/pagination.php - Componente de paginaçãoAuthauth/login.php - Página de loginauth/register.php - Página de registroauth/verify.php - Página de verificação de emailQuestionsquestions/list.php - Listagem de questõesquestions/detail.php - Detalhe de uma questãoquestions/filters.php - Componente de filtrosExamsexams/start.php - Início de um simuladoexams/question.php - Questão individual durante o simuladoexams/result.php - Resultado do simuladoErrorserrors/404.php - Página não encontradaerrors/500.php - Erro interno do servidor📊 Exemplo de Uso de JOINs nas ViewsphpCopyDownload// No Controller
+public function showQuestion($id) {
+    $questionModel = new Question($this-&gt;db);
+    $question = $questionModel-&gt;getWithDetails($id);
+    
+    return $this-&gt;template-&gt;render('questions/detail', [
+        'question' =&gt; $question
+    ]);
+}
+
+// Na View (questions/detail.php)
+&lt;div class="question-header"&gt;
+    &lt;span class="badge bg-primary"&gt;&lt;?= $this-&gt;e($question['organ_acronym']) ?&gt;&lt;/span&gt;
+    &lt;span class="badge bg-secondary"&gt;&lt;?= $this-&gt;e($question['exam_year']) ?&gt;&lt;/span&gt;
+    &lt;span class="badge bg-info"&gt;&lt;?= $this-&gt;e($question['role_name']) ?&gt;&lt;/span&gt;
+&lt;/div&gt;
+
+&lt;h3&gt;Questão &lt;?= $this-&gt;e($question['question_number']) ?&gt;&lt;/h3&gt;
+&lt;p&gt;&lt;?= nl2br($this-&gt;e($question['question_text'])) ?&gt;&lt;/p&gt;
+
+&lt;!-- Mostrar alternativas --&gt;
+&lt;?php $alternatives = json_decode($question['alternatives'], true); ?&gt;
+&lt;?php foreach ($alternatives as $alt): ?&gt;
+&lt;div class="alternative"&gt;
+    &lt;strong&gt;&lt;?= $this-&gt;e($alt['letter']) ?&gt;)&lt;/strong&gt; 
+    &lt;?= $this-&gt;e($alt['text']) ?&gt;
+&lt;/div&gt;
+&lt;?php endforeach; ?&gt;🚨 Tratamento de ErrosError Handling no ControllerphpCopyDownloadpublic function show($id) {
+    try {
+        $model = new MeuModel($this-&gt;db);
+        $item = $model-&gt;getById($id);
+        
+        if (!$item) {
+            throw new \Exception('Item não encontrado', 404);
+        }
+        
+        return $this-&gt;template-&gt;render('meu-template/ver', [
+            'item' =&gt; $item
+        ]);
+    } catch (\Exception $e) {
+        error_log($e-&gt;getMessage());
+        
+        if ($e-&gt;getCode() === 404) {
+            return $this-&gt;template-&gt;render('errors/404', [
+                'message' =&gt; $e-&gt;getMessage()
+            ], 404);
+        }
+        
+        return $this-&gt;template-&gt;render('errors/500', [
+            'message' =&gt; 'Erro interno do servidor'
+        ], 500);
+    }
+}🔧 Comandos ÚteisbashCopyDownload# Instalar dependências
+composer install
+
+# Atualizar autoloader
+composer dump-autoload
+
+# Executar testes (quando implementados)
+composer test
+
+# Verificar estilo de código
+composer check-style
+
+# Corrigir estilo de código
+composer fix-style📝 Próximos PassosImplementar testes unitáriosAdicionar sistema de cacheImplementar internacionalização (i18n)Adicionar sistema de notificaçõesCriar API RESTfulImplementar sistema de upload de arquivosAdicionar documentação da API🤝 ContribuindoFaça o fork do projetoCrie uma branch para sua feature (git checkout -b feature/AmazingFeature)Commit suas mudanças (git commit -m 'Add some AmazingFeature')Push para a branch (git push origin feature/AmazingFeature)Abra um Pull Request📄 LicençaEste projeto está sob a licença MIT. Veja o arquivo LICENSE para mais detalhes.🆘 SuporteSe você encontrar problemas ou tiver dúvidas:Verifique a documentaçãoProcure em issues existentesCrie uma nova issue com detalhes do problemaNota: Esta documentação será atualizada conforme o projeto evolui. Mantenha-se atualizado com as últimas mudanças.
+
+You: Comece a criar para mim por favor. Adapte a isso se necessário: Por exemplo TRT tem prova para cargo A, cargo, B, etc e ano x, y e z. Então tem que refatorar essas tabelas e depois usaremos joins ou algo assim para resgatar os dados. Aí podemos mostrar concursos por cargo - Ex. Contador, aí mostraria todas as provas, por ano mostraria todas de 2022 e assim por diante, por empresa... todas a provas
+You: Faça todos os passos acima.
+You: Crie um Routes e as rotas a parte tipo no arquivo web.php. Não se esqueça do composer, namespaces. Foi criado um Model abstrato para o CRUD, insert, delete, update e read e readbyid ou algo assim? Se não crie e adapte o que vimos até agora?
+You: Crie o Readme.md e arquivo de ajuda principalmente para novos controllers e views e uso dos joint etc. Ah, todas as views foram criadas? Tem a classe estilo plates para lidar com as views - com template master, partials, etc?
